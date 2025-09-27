@@ -231,21 +231,6 @@ body{
   <button id="loadBtn" class="btn">Load</button>
 </div>
 
-<!-- Load Modal -->
-<div id="loadModal" class="modal" aria-hidden>
-  <div class="sheet">
-    <h3>Game Options</h3>
-    <button id="modalLoad" class="btn">Load Saved Game</button>
-    <button id="modalDownload" class="btn">Download Selected JSON</button>
-    <button id="modalUpload" class="btn">Upload JSON</button>
-    <div class="saved-list" id="savedList"></div>
-    <input type="file" id="uploadInput" style="display:none" accept="application/json" multiple />
-    <div style="display:flex;justify-content:flex-end;">
-      <button id="closeModal" class="btn">Close</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // --- Players Data ---
 let initialPlayers=[
@@ -262,9 +247,6 @@ let gameSeconds=0, globalRunning=false, timerInterval=null;
 const playersEl=document.getElementById('players');
 const gameInput=document.getElementById('gameInput');
 const gameClockEl=document.getElementById('gameClock');
-const loadModal=document.getElementById('loadModal');
-const savedList=document.getElementById('savedList');
-const uploadInput=document.getElementById('uploadInput');
 
 if(!gameInput.value) gameInput.value='Game-'+cryptoRandomId();
 
@@ -318,7 +300,15 @@ function render(){
 
     const controls=document.createElement('div'); controls.className='controls';
     const subBtn=document.createElement('button'); subBtn.className='icon'; subBtn.textContent='SUB';
-    subBtn.addEventListener('click',()=>{p.active?p.running=false,p.active=false,onMinus(p.id):onPlus(p.id);});
+    subBtn.addEventListener('click', () => {
+      if(p.active){
+        p.running=false;
+        p.active=false;
+        onMinus(p.id);
+      } else {
+        onPlus(p.id);
+      }
+    });
     controls.appendChild(subBtn);
     row.appendChild(controls);
 
@@ -347,7 +337,6 @@ function onPlus(id){
   const p=players.find(x=>x.id===id); if(!p) return;
   p.active=true; if(globalRunning) p.running=true;
   p.history.push({in:gameSeconds});
-
   // Highlight animation
   const row=[...playersEl.children].find(r=>r.dataset.id===id);
   if(row){
