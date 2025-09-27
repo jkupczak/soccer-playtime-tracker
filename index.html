@@ -22,9 +22,7 @@ body{
   display:flex;
   flex-direction:column;
   height:100vh;
-  overflow:hidden;
 }
-
 /* Header pinned top */
 .header{
   display:flex;
@@ -33,7 +31,6 @@ body{
   padding:8px 12px;
   background:var(--card);
   flex-shrink:0;
-  z-index:10;
 }
 .header input{
   flex:1;
@@ -50,7 +47,6 @@ body{
   font-weight:700;
   font-size:18px;
 }
-
 /* Scrollable player container */
 .player-container{
   flex:1;
@@ -59,9 +55,7 @@ body{
   display:flex;
   flex-direction:column;
   gap:8px;
-  padding-bottom:calc(8px + 60px + env(safe-area-inset-bottom)); /* leave space for toolbar */
 }
-
 /* Player row */
 .player{
   display:flex;
@@ -96,7 +90,6 @@ body{
   background:var(--accent);
   box-shadow:0 0 10px rgba(16,185,129,0.35);
 }
-
 .player .left{
   display:flex;
   align-items:center;
@@ -140,7 +133,6 @@ body{
   text-align:right;
   font-variant-numeric:tabular-nums;
 }
-
 /* Add player row */
 .add-player{
   display:flex;
@@ -152,33 +144,16 @@ body{
   cursor:pointer;
   font-weight:700;
 }
-
-/* Toolbar pinned bottom */
+/* Toolbar */
 .toolbar{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  padding:8px calc(12px + env(safe-area-inset-bottom));
-  background:var(--card);
   display:flex;
   justify-content:center;
   gap:8px;
   flex-wrap:wrap;
-  z-index:50;
+  padding:8px 12px;
+  background:var(--card);
+  flex-shrink:0;
 }
-.toolbar .btn{
-  padding:10px 14px;
-  border-radius:10px;
-  border:none;
-  background:rgba(255,255,255,0.03);
-  color:inherit;
-  font-weight:700;
-}
-.toolbar .btn.primary{
-  background:linear-gradient(90deg,#06b6d4,#10b981);
-}
-
 /* Modal */
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:60}
 .modal.open{display:flex}
@@ -226,9 +201,23 @@ body{
 <div class="toolbar">
   <button id="pauseAll" class="btn">❚❚</button>
   <button id="playAll" class="btn primary">►</button>
-  <button id="saveBtn" class="btn">Save</button>
   <button id="resetBtn" class="btn">Reset</button>
   <button id="loadBtn" class="btn">Load</button>
+</div>
+
+<!-- Load Modal -->
+<div id="loadModal" class="modal" aria-hidden>
+  <div class="sheet">
+    <h3>Game Options</h3>
+    <button id="modalLoad" class="btn">Load Saved Game</button>
+    <button id="modalDownload" class="btn">Download JSON</button>
+    <button id="modalUpload" class="btn">Upload JSON</button>
+    <div class="saved-list" id="savedList"></div>
+    <input type="file" id="uploadInput" style="display:none" accept="application/json" multiple />
+    <div style="display:flex;justify-content:flex-end;">
+      <button id="closeModal" class="btn">Close</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -240,13 +229,16 @@ let initialPlayers=[
   {num:'00',name:'Ryan'},{num:'00',name:'Emerson'}
 ];
 
-let players=initialPlayers.map(p=>({...p,seconds:0,active:false,running:false,history:[],id:cryptoRandomId()}));
+let players=[];
 let gameSeconds=0, globalRunning=false, timerInterval=null;
 
 // DOM
 const playersEl=document.getElementById('players');
 const gameInput=document.getElementById('gameInput');
 const gameClockEl=document.getElementById('gameClock');
+const loadModal=document.getElementById('loadModal');
+const savedList=document.getElementById('savedList');
+const uploadInput=document.getElementById('uploadInput');
 
 if(!gameInput.value) gameInput.value='Game-'+cryptoRandomId();
 
@@ -277,9 +269,26 @@ function addNewPlayer(){
   };
   players.push(newPlayer);
   reorderAndRender();
+  autoSave();
 }
 
-// --- Render ---
+// --- Load most recent game ---
+function loadMostRecentGame(){
+  let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
+  if(idx.length===0){initializePlayers();return;}
+  const latestId=idx[idx.length-1];
+  const data=JSON.parse(localStorage.getItem(storageKey(latestId)));
+  if(data){
+    gameSeconds=data.gameSeconds||0;
+    players=data.players||[];
+    gameInput.value=data.id||('Game-'+cryptoRandomId());
+  } else initializePlayers();
+}
+function initializePlayers(){
+  players=initialPlayers.map(p=>({...p,seconds:0,active:false,running:false,history:[],id:cryptoRandomId()}));
+}
+
+// --- Render & Event Listeners ---
 function render(){
   gameClockEl.textContent=fmt(gameSeconds);
   playersEl.innerHTML='';
@@ -292,22 +301,24 @@ function render(){
 
     const left=document.createElement('div'); left.className='left';
     const num=document.createElement('div'); num.className='player-number'; num.contentEditable=true; num.textContent=p.num;
-    num.addEventListener('input',()=>p.num=num.textContent.trim());
+    num.addEventListener('input',()=>{p.num=num.textContent.trim(); autoSave();});
     const name=document.createElement('div'); name.className='player-name'; name.contentEditable=true; name.textContent=p.name;
-    name.addEventListener('input',()=>p.name=name.textContent.trim());
+    name.addEventListener('input',()=>{p.name=name.textContent.trim(); autoSave();});
     left.appendChild(num); left.appendChild(name);
     row.appendChild(left);
 
     const controls=document.createElement('div'); controls.className='controls';
-    const subBtn=document.createElement('button'); subBtn.className='icon'; subBtn.textContent='SUB';
-    subBtn.addEventListener('click', () => {
+    const subBtn=document.createElement('button'); subBtn.className='icon'; 
+    function updateBtn(){subBtn.textContent=p.active?'-':'+';}
+    updateBtn();
+    subBtn.addEventListener('click', ()=>{
       if(p.active){
-        p.running=false;
-        p.active=false;
-        onMinus(p.id);
+        p.running=false; p.active=false; onMinus(p.id);
       } else {
         onPlus(p.id);
       }
+      updateBtn();
+      autoSave();
     });
     controls.appendChild(subBtn);
     row.appendChild(controls);
@@ -318,7 +329,6 @@ function render(){
     playersEl.appendChild(row);
   });
 
-  // Add Player row at bottom
   const addRow=document.createElement('div'); addRow.className='add-player'; addRow.textContent='+ Add Player';
   addRow.addEventListener('click',addNewPlayer);
   playersEl.appendChild(addRow);
@@ -337,16 +347,10 @@ function onPlus(id){
   const p=players.find(x=>x.id===id); if(!p) return;
   p.active=true; if(globalRunning) p.running=true;
   p.history.push({in:gameSeconds});
-  // Highlight animation
   const row=[...playersEl.children].find(r=>r.dataset.id===id);
-  if(row){
-    row.classList.remove('highlight');
-    void row.offsetWidth;
-    row.classList.add('highlight');
-  }
+  if(row){row.classList.remove('highlight'); void row.offsetWidth; row.classList.add('highlight');}
   reorderAndRender();
 }
-
 function onMinus(id){
   const p=players.find(x=>x.id===id); if(!p) return;
   p.running=false; p.active=false;
@@ -387,19 +391,68 @@ document.getElementById('playAll').addEventListener('click',()=>{
   globalRunning=true; players.forEach(p=>{if(p.active)p.running=true});
   startInterval(); autoSave();
 });
-document.getElementById('pauseAll').addEventListener('click',()=>{globalRunning=false; players.forEach(p=>p.running=false); autoSave();});
-document.getElementById('saveBtn').addEventListener('click',autoSave);
+document.getElementById('pauseAll').addEventListener('click',()=>{
+  globalRunning=false; players.forEach(p=>p.running=false); autoSave();
+});
 document.getElementById('resetBtn').addEventListener('click',()=>{
   if(confirm('Reset game?')){
     gameSeconds=0; globalRunning=false;
     players.forEach(p=>{p.active=false; p.running=false; p.seconds=0; p.history=[]});
     gameInput.value='Game-'+cryptoRandomId();
     render();
+    autoSave();
   }
 });
 
-// --- Initial Render ---
-render();
+// --- Load Modal ---
+const loadBtn=document.getElementById('loadBtn');
+const closeModal=document.getElementById('closeModal');
+loadBtn.addEventListener('click',()=>{loadModal.classList.add('open'); populateSavedList();});
+closeModal.addEventListener('click',()=>{loadModal.classList.remove('open');});
+function populateSavedList(){
+  savedList.innerHTML='';
+  const idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
+  idx.forEach(id=>{
+    const item=document.createElement('div'); item.className='saved-item';
+    item.textContent=id;
+    item.addEventListener('click',()=>{
+      const data=JSON.parse(localStorage.getItem(storageKey(id)));
+      if(data){gameSeconds=data.gameSeconds||0; players=data.players||[]; gameInput.value=data.id||('Game-'+cryptoRandomId()); globalRunning=false; players.forEach(p=>p.running=false); reorderAndRender(); loadModal.classList.remove('open'); autoSave();}
+    });
+    savedList.appendChild(item);
+  });
+}
+document.getElementById('modalDownload').addEventListener('click',()=>{
+  const idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
+  const data=idx.map(id=>JSON.parse(localStorage.getItem(storageKey(id))));
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='games.json'; a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('modalUpload').addEventListener('click',()=>uploadInput.click());
+uploadInput.addEventListener('change',(e)=>{
+  const files=Array.from(e.target.files);
+  files.forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=()=>{try{const arr=JSON.parse(reader.result); arr.forEach(g=>{if(g.id) localStorage.setItem(storageKey(g.id),JSON.stringify(g));}); autoSave(); populateSavedList();}catch(err){alert('Invalid JSON');}};
+    reader.readAsText(f);
+  });
+});
+
+// --- Initialize ---
+loadMostRecentGame();
+reorderAndRender();
+startInterval();
+
+// --- PWA: Service Worker ---
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg=>console.log('Service Worker registered:',reg.scope))
+      .catch(err=>console.log('Service Worker registration failed:',err));
+  });
+}
 </script>
 </body>
 </html>
