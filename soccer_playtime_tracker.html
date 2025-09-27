@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Soccer Playtime Tracker</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#10b981;--muted:#94a3b8;--danger:#ef4444}
+    html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071126 0%, #06121b 100%);color:#e6eef6;display:flex;flex-direction:column}
+    .container{flex:1;display:flex;flex-direction:column;padding:12px;gap:8px;max-width:900px;margin:0 auto;width:100%}
+
+    #gameInput{width:100%;box-sizing:border-box;padding:14px 12px;border-radius:10px;border:0;font-size:18px;background:rgba(255,255,255,0.03);color:inherit}
+    .gameclock{width:100%;text-align:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);font-weight:700;font-size:20px}
+
+    .players{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+    .player{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 1px 0 rgba(255,255,255,0.02);width:100%}
+    .player .left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+    .player-number{width:56px;flex:0 0 56px;border-radius:8px;padding:8px;text-align:center;background:rgba(255,255,255,0.02);font-weight:700}
+    .player-number[contenteditable]{outline:none}
+    .player-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .indicator{width:14px;height:14px;border-radius:50%;background:var(--muted);box-shadow:0 0 6px rgba(0,0,0,0.6)}
+    .indicator.active{background:var(--accent);box-shadow:0 0 10px rgba(16,185,129,0.35)}
+
+    .controls{display:flex;gap:8px;align-items:center}
+    button.icon{appearance:none;border:0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);color:inherit;font-weight:700;font-size:16px;min-width:48px}
+    button.icon:active{transform:translateY(1px)}
+
+    .time{width:78px;flex:0 0 78px;text-align:right;font-variant-numeric:tabular-nums}
+
+    .toolbar{position:fixed;left:0;right:0;bottom:0;padding:8px;background:linear-gradient(180deg, rgba(5,10,18,0.9), rgba(5,10,18,1));display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+    .toolbar .btn{padding:12px 16px;border-radius:12px;border:0;background:rgba(255,255,255,0.03);color:inherit;font-weight:700;font-size:16px}
+    .toolbar .btn.primary{background:linear-gradient(90deg,#06b6d4,#10b981)}
+
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:40}
+    .modal.open{display:flex}
+    .modal .sheet{width:calc(100% - 40px);max-width:520px;background:var(--card);border-radius:12px;padding:12px;}
+    .saved-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;padding:6px}
+    .saved-item{padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+
+    @media(min-width:720px){body{padding:20px} .container{padding:0}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <input id="gameInput" placeholder="Enter Game ID (unique)" />
+    <div id="gameClock" class="gameclock">Game: <span id="gameIdLabel">(no id)</span> — 00:00</div>
+    <div class="players" id="players"></div>
+  </div>
+
+  <div class="toolbar" role="toolbar" aria-label="controls">
+    <button id="pauseAll" class="btn">Pause</button>
+    <button id="playAll" class="btn primary">Play</button>
+    <button id="saveBtn" class="btn">Save</button>
+    <button id="resetBtn" class="btn">Reset</button>
+    <button id="loadBtn" class="btn">Load</button>
+    <button id="downloadBtn" class="btn">Download JSON</button>
+    <input type="file" id="uploadInput" style="display:none" accept="application/json" multiple />
+    <button id="uploadBtn" class="btn">Upload JSON</button>
+  </div>
+
+  <div id="loadModal" class="modal" aria-hidden>
+    <div class="sheet">
+      <h3>Saved Games</h3>
+      <div class="saved-list" id="savedList"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button id="deleteAllBtn" class="btn" style="background:var(--danger);">Delete All</button>
+        <button id="closeModal" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const initialPlayers = [
+      {num:'26',name:'Alex'},
+      {num:'00',name:'Miles'},
+      {num:'00',name:'Julian'},
+      {num:'00',name:'Benjamin'},
+      {num:'00',name:'Judah'},
+      {num:'00',name:'Sebastian'},
+      {num:'00',name:'Kaison'},
+      {num:'00',name:'Santiago'},
+      {num:'00',name:'Maxwell'},
+      {num:'00',name:'Ryan'},
+      {num:'00',name:'Emerson'}
+    ];
+
+    let players = initialPlayers.map(p=>({...p, seconds:0, active:false, running:false, history:[], id:cryptoRandomId()}));
+    let gameSeconds = 0;
+    let globalRunning = false;
+    let timerInterval = null;
+
+    const playersEl = document.getElementById('players');
+    const gameInput = document.getElementById('gameInput');
+    const gameIdLabel = document.getElementById('gameIdLabel');
+
+    function cryptoRandomId(){return Math.random().toString(36).slice(2,9)}
+    function fmt(s){ const mm = Math.floor(s/60).toString().padStart(2,'0'); const ss = (s%60).toString().padStart(2,'0'); return mm+':'+ss }
+    function storageKey(id){return 'soccer_play_tracker:' + id}
+    function storageIndexKey(){return 'soccer_play_tracker:index'}
+
+    function saveToStorage(){
+      const gameId = (gameInput.value || '').trim();
+      if(!gameId){alert('Please enter a Game ID before saving.'); return}
+      const key = storageKey(gameId);
+      const payload = {gameSeconds, players: players.map(p=>({num:p.num, name:p.name, seconds:p.seconds, history:p.history})), timestamp: new Date().toLocaleString()};
+      localStorage.setItem(key, JSON.stringify(payload));
+      const idx = JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
+      if(!idx.includes(gameId)) idx.push(gameId);
+      localStorage.setItem(storageIndexKey(), JSON.stringify(idx));
+      renderSavedList();
+    }
+
+    function render(){
+      gameIdLabel.textContent = gameInput.value || '(no id)';
+      const ordered = [...players].sort((a,b)=> a.active===b.active?0:a.active?-1:1);
+      playersEl.innerHTML = '';
+      ordered.forEach(p => {
+        const row = document.createElement('div'); row.className='player
