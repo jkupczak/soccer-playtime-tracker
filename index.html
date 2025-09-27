@@ -7,57 +7,222 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#10b981">
 <style>
-:root{--bg:#0f1724;--card:#0b1220;--accent:#10b981;--muted:#94a3b8;--danger:#ef4444}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#e6eef6;background:var(--bg);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+:root{
+  --bg:#0f1724;
+  --card:#0b1220;
+  --accent:#10b981;
+  --muted:#94a3b8;
+  --danger:#ef4444;
+}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+  color:#e6eef6;
+  background:var(--bg);
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+}
 
-/* Header pinned */
-.header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--card);flex-shrink:0;z-index:10}
-.header input{flex:1;margin-right:12px;padding:10px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:inherit;font-size:16px}
-.header .gameclock{flex-shrink:0;font-weight:700;font-size:18px}
+/* Header pinned top */
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 12px;
+  background:var(--card);
+  flex-shrink:0;
+  z-index:10;
+}
+.header input{
+  flex:1;
+  margin-right:12px;
+  padding:10px;
+  border-radius:8px;
+  border:none;
+  background:rgba(255,255,255,0.03);
+  color:inherit;
+  font-size:16px;
+}
+.header .gameclock{
+  flex-shrink:0;
+  font-weight:700;
+  font-size:18px;
+}
 
-/* Player list scrollable */
-.player-container{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px}
+/* Scrollable player container */
+.player-container{
+  flex:1;
+  overflow-y:auto;
+  padding:8px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding-bottom:calc(8px + 60px + env(safe-area-inset-bottom)); /* leave space for toolbar */
+}
 
-/* Player rows */
-.player{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);position:relative;transition:background 0.2s}
-.player.active{box-shadow:0 0 6px 2px var(--accent)}
-.player.highlight{animation:highlightIn 1.2s ease-in-out}
-@keyframes highlightIn{0%{background-color:rgba(16,185,129,0.4)}50%{background-color:rgba(16,185,129,0.15)}100%{background-color:rgba(0,0,0,0)}}
+/* Player row */
+.player{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.02);
+  position:relative;
+  transition:background 0.2s;
+}
+.player.active{
+  box-shadow:0 0 6px 2px var(--accent);
+}
+.player.highlight{
+  animation:highlightIn 1.2s ease-in-out;
+}
+@keyframes highlightIn{
+  0%{background-color:rgba(16,185,129,0.4)}
+  50%{background-color:rgba(16,185,129,0.15)}
+  100%{background-color:rgba(0,0,0,0)}
+}
+.player .indicator{
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:var(--muted);
+  box-shadow:0 0 6px rgba(0,0,0,0.6);
+  flex-shrink:0;
+}
+.player .indicator.active{
+  background:var(--accent);
+  box-shadow:0 0 10px rgba(16,185,129,0.35);
+}
 
-.player .left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-.player-number,.player-name{padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);outline:none;font-weight:700}
-.player-number{width:50px;text-align:center;flex:0 0 50px}
-.player-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player .left{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:1;
+  min-width:0;
+}
+.player-number,.player-name{
+  padding:6px 8px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.02);
+  outline:none;
+  font-weight:700;
+}
+.player-number{
+  width:50px;
+  text-align:center;
+  flex:0 0 50px;
+}
+.player-name{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.controls{display:flex;align-items:center}
+.controls button.icon{
+  appearance:none;
+  border:0;
+  padding:6px 10px;
+  border-radius:8px;
+  background:rgba(255,255,255,0.03);
+  color:inherit;
+  font-weight:700;
+  min-width:50px;
+}
+.time{
+  width:60px;
+  flex:0 0 60px;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
 
-.indicator{width:14px;height:14px;border-radius:50%;background:var(--muted);box-shadow:0 0 6px rgba(0,0,0,0.6)}
-.indicator.active{background:var(--accent);box-shadow:0 0 10px rgba(16,185,129,0.35)}
+/* Add player row */
+.add-player{
+  display:flex;
+  justify-content:center;
+  padding:10px;
+  border-radius:10px;
+  background:rgba(16,185,129,0.1);
+  color:var(--accent);
+  cursor:pointer;
+  font-weight:700;
+}
 
-.controls{display:flex;gap:6px;align-items:center}
-button.icon{appearance:none;border:0;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.03);color:inherit;font-weight:700;min-width:36px}
-.time{width:60px;flex:0 0 60px;text-align:right;font-variant-numeric:tabular-nums}
-
-/* Toolbar pinned */
-.toolbar{display:flex;justify-content:center;align-items:center;gap:8px;padding:8px 12px;background:var(--card);flex-shrink:0;z-index:10}
-.toolbar .btn{padding:10px 14px;border-radius:10px;border:none;background:rgba(255,255,255,0.03);color:inherit;font-weight:700}
-.toolbar .btn.primary{background:linear-gradient(90deg,#06b6d4,#10b981)}
+/* Toolbar pinned bottom */
+.toolbar{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  padding:8px calc(12px + env(safe-area-inset-bottom));
+  background:var(--card);
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  flex-wrap:wrap;
+  z-index:50;
+}
+.toolbar .btn{
+  padding:10px 14px;
+  border-radius:10px;
+  border:none;
+  background:rgba(255,255,255,0.03);
+  color:inherit;
+  font-weight:700;
+}
+.toolbar .btn.primary{
+  background:linear-gradient(90deg,#06b6d4,#10b981);
+}
 
 /* Modal */
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:60}
 .modal.open{display:flex}
-.modal .sheet{width:calc(100% - 40px);max-width:520px;background:var(--card);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
-.saved-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;padding:6px}
-.saved-item{padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.modal .sheet{
+  width:calc(100% - 40px);
+  max-width:520px;
+  background:var(--card);
+  border-radius:12px;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.saved-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:60vh;
+  overflow:auto;
+  padding:6px;
+}
+.saved-item{
+  padding:10px;
+  border-radius:8px;
+  background:rgba(255,255,255,0.02);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+}
 </style>
 </head>
 <body>
 
+<!-- Header -->
 <div class="header">
   <input id="gameInput" placeholder="Game ID">
   <div class="gameclock" id="gameClock">00:00</div>
 </div>
 
+<!-- Scrollable player container -->
 <div class="player-container" id="players"></div>
 
+<!-- Toolbar -->
 <div class="toolbar">
   <button id="pauseAll" class="btn">❚❚</button>
   <button id="playAll" class="btn primary">►</button>
@@ -66,6 +231,7 @@ button.icon{appearance:none;border:0;padding:6px 10px;border-radius:8px;backgrou
   <button id="loadBtn" class="btn">Load</button>
 </div>
 
+<!-- Load Modal -->
 <div id="loadModal" class="modal" aria-hidden>
   <div class="sheet">
     <h3>Game Options</h3>
@@ -108,6 +274,29 @@ function fmt(s){const m=Math.floor(s/60).toString().padStart(2,'0');const sec=(s
 function storageKey(id){return 'game_'+id;}
 function storageIndexKey(){return 'game_index';}
 
+// --- Add New Player ---
+function generateNewPlayerName(){
+  let i=1;
+  while(true){
+    const name=`Player ${String(i).padStart(2,'0')}`;
+    if(!players.some(p=>p.name===name)) return name;
+    i++;
+  }
+}
+function addNewPlayer(){
+  const newPlayer={
+    num:'00',
+    name:generateNewPlayerName(),
+    seconds:0,
+    active:false,
+    running:false,
+    history:[],
+    id:cryptoRandomId()
+  };
+  players.push(newPlayer);
+  reorderAndRender();
+}
+
 // --- Render ---
 function render(){
   gameClockEl.textContent=fmt(gameSeconds);
@@ -115,25 +304,34 @@ function render(){
   players.forEach(p=>{
     const row=document.createElement('div'); row.className='player'; row.dataset.id=p.id;
     if(p.active) row.classList.add('active');
+
+    const indicator=document.createElement('div'); indicator.className='indicator'; if(p.active) indicator.classList.add('active');
+    row.appendChild(indicator);
+
     const left=document.createElement('div'); left.className='left';
     const num=document.createElement('div'); num.className='player-number'; num.contentEditable=true; num.textContent=p.num;
     num.addEventListener('input',()=>p.num=num.textContent.trim());
     const name=document.createElement('div'); name.className='player-name'; name.contentEditable=true; name.textContent=p.name;
     name.addEventListener('input',()=>p.name=name.textContent.trim());
-    const indicator=document.createElement('div'); indicator.className='indicator'; if(p.active) indicator.classList.add('active');
-    left.appendChild(num); left.appendChild(name); left.appendChild(indicator);
+    left.appendChild(num); left.appendChild(name);
+    row.appendChild(left);
 
     const controls=document.createElement('div'); controls.className='controls';
-    const plus=document.createElement('button'); plus.className='icon'; plus.textContent='+';
-    plus.addEventListener('click',()=>onPlus(p.id));
-    const minus=document.createElement('button'); minus.className='icon'; minus.textContent='-';
-    minus.addEventListener('click',()=>onMinus(p.id));
-    const time=document.createElement('div'); time.className='time'; time.textContent=fmt(p.seconds);
-    controls.appendChild(plus); controls.appendChild(minus);
+    const subBtn=document.createElement('button'); subBtn.className='icon'; subBtn.textContent='SUB';
+    subBtn.addEventListener('click',()=>{p.active?p.running=false,p.active=false,onMinus(p.id):onPlus(p.id);});
+    controls.appendChild(subBtn);
+    row.appendChild(controls);
 
-    row.appendChild(left); row.appendChild(controls); row.appendChild(time);
+    const time=document.createElement('div'); time.className='time'; time.textContent=fmt(p.seconds);
+    row.appendChild(time);
+
     playersEl.appendChild(row);
   });
+
+  // Add Player row at bottom
+  const addRow=document.createElement('div'); addRow.className='add-player'; addRow.textContent='+ Add Player';
+  addRow.addEventListener('click',addNewPlayer);
+  playersEl.appendChild(addRow);
 }
 
 // --- Sorting ---
@@ -150,14 +348,13 @@ function onPlus(id){
   p.active=true; if(globalRunning) p.running=true;
   p.history.push({in:gameSeconds});
 
-  // Highlight effect
+  // Highlight animation
   const row=[...playersEl.children].find(r=>r.dataset.id===id);
   if(row){
     row.classList.remove('highlight');
-    void row.offsetWidth; // force reflow to restart animation
+    void row.offsetWidth;
     row.classList.add('highlight');
   }
-
   reorderAndRender();
 }
 
@@ -188,7 +385,7 @@ function stopInterval(){if(timerInterval){clearInterval(timerInterval); timerInt
 function autoSave(){
   if(!gameInput.value) return;
   const id=gameInput.value.trim(); if(!id) return;
-  const data={id,gameSeconds,players:players.map(p=>({...p})) , timestamp:new Date().toISOString()};
+  const data={id,gameSeconds,players:players.map(p=>({...p})), timestamp:new Date().toISOString()};
   localStorage.setItem(storageKey(id),JSON.stringify(data));
   let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
   if(!idx.includes(id)) idx.push(id);
@@ -212,81 +409,8 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
   }
 });
 
-// --- Load Modal & JSON ---
-const loadBtn=document.getElementById('loadBtn');
-const modalLoad=document.getElementById('modalLoad');
-const modalDownload=document.getElementById('modalDownload');
-const modalUpload=document.getElementById('modalUpload');
-const closeModal=document.getElementById('closeModal');
-
-loadBtn.addEventListener('click',()=>{renderSavedList(); loadModal.classList.add('open');});
-closeModal.addEventListener('click',()=>loadModal.classList.remove('open'));
-modalUpload.addEventListener('click',()=>uploadInput.click());
-uploadInput.addEventListener('change',e=>{
-  const files=[...e.target.files];
-  files.forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=()=>{try{
-      let data=JSON.parse(reader.result);
-      if(!Array.isArray(data)) data=[data];
-      data.forEach(obj=>{
-        const id=obj.id||cryptoRandomId();
-        localStorage.setItem(storageKey(id),JSON.stringify(obj));
-        let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
-        if(!idx.includes(id)) idx.push(id); localStorage.setItem(storageIndexKey(),JSON.stringify(idx));
-      }); renderSavedList();
-    }catch(e){alert('Invalid JSON');}};
-    reader.readAsText(file);
-  });
-});
-
-// --- Saved list ---
-function renderSavedList(){
-  savedList.innerHTML='';
-  let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
-  idx.sort((a,b)=>new Date(JSON.parse(localStorage.getItem(storageKey(b))||'{}').timestamp)-new Date(JSON.parse(localStorage.getItem(storageKey(a))||'{}').timestamp));
-  if(idx.length===0){ savedList.innerHTML='<div>No saved games</div>'; return; }
-  idx.forEach(id=>{
-    const raw=localStorage.getItem(storageKey(id)); if(!raw) return;
-    const obj=JSON.parse(raw);
-    const el=document.createElement('div'); el.className='saved-item';
-    el.innerHTML=`<input type="checkbox" class="selectGame" data-id="${id}"><strong>${id}</strong> <span>${obj.timestamp}</span>`;
-    const loadBtn=document.createElement('button'); loadBtn.className='btn'; loadBtn.textContent='Load';
-    loadBtn.addEventListener('click',()=>loadGame(id));
-    const deleteBtn=document.createElement('button'); deleteBtn.className='btn'; deleteBtn.style.background='var(--danger)'; deleteBtn.textContent='Delete';
-    deleteBtn.addEventListener('click',()=>{if(confirm('Delete?')){localStorage.removeItem(storageKey(id)); let ix=JSON.parse(localStorage.getItem(storageIndexKey())||'[]'); ix=ix.filter(x=>x!==id); localStorage.setItem(storageIndexKey(),JSON.stringify(ix)); renderSavedList();}});
-    el.appendChild(loadBtn); el.appendChild(deleteBtn); savedList.appendChild(el);
-  });
-}
-
-function loadGame(id){
-  const raw=localStorage.getItem(storageKey(id)); if(!raw) return;
-  const obj=JSON.parse(raw);
-  players=obj.players.map(p=>({...p,active:false,running:false,id:cryptoRandomId()}));
-  gameSeconds=obj.gameSeconds||0; globalRunning=false;
-  gameInput.value=id; render(); loadModal.classList.remove('open');
-}
-
-modalDownload.addEventListener('click',()=>{
-  const checked=[...savedList.querySelectorAll('.selectGame:checked')].map(i=>i.dataset.id);
-  let data=[]; if(checked.length>0){checked.forEach(id=>{const r=localStorage.getItem(storageKey(id)); if(r) data.push(JSON.parse(r))});}
-  else{let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]'); idx.forEach(id=>{const r=localStorage.getItem(storageKey(id)); if(r) data.push(JSON.parse(r))});}
-  if(data.length===0){alert('No games');return;}
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='soccer_play_games.json'; a.click(); URL.revokeObjectURL(url);
-});
-
-modalLoad.addEventListener('click',()=>{
-  const checked=[...savedList.querySelectorAll('.selectGame:checked')].map(i=>i.dataset.id);
-  if(checked.length===0){alert('Select a game'); return;} loadGame(checked[0]);
-});
-
+// --- Initial Render ---
 render();
-</script>
-
-<script>
-// --- Service Worker Registration ---
-if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(r=>console.log('SW registered',r.scope)).catch(e=>console.log('SW failed',e));});}
 </script>
 </body>
 </html>
