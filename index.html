@@ -2,18 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Soccer Playtime Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#10b981">
 <style>
 :root{--bg:#0f1724;--card:#0b1220;--accent:#10b981;--muted:#94a3b8;--danger:#ef4444}
-html,body{height:100%}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071126 0%, #06121b 100%);color:#e6eef6;display:flex;flex-direction:column}
-.container{flex:1;display:flex;flex-direction:column;padding:12px;gap:8px;max-width:900px;margin:0 auto;width:100%}
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071126 0%, #06121b 100%);color:#e6eef6;display:flex;flex-direction:column;touch-action:manipulation}
+.container{flex:1;display:flex;flex-direction:column;padding:12px 12px calc(80px + env(safe-area-inset-bottom)) 12px;gap:8px;max-width:900px;margin:0 auto;width:100%}
 #gameInput{width:100%;box-sizing:border-box;padding:14px 12px;border-radius:10px;border:0;font-size:18px;background:rgba(255,255,255,0.03);color:inherit}
 .gameclock{width:100%;text-align:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);font-weight:700;font-size:20px}
 .players{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-.player{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 1px 0 rgba(255,255,255,0.02);width:100%}
-.player.active{border:2px solid var(--accent);}
+.player{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));width:100%;position:relative}
+.player.active{box-shadow:0 0 6px 2px var(--accent);}
+.player.highlight{animation:highlightIn 1.2s ease-in-out;}
+@keyframes highlightIn {
+  0% { background-color: rgba(16,185,129,0.4); }
+  50% { background-color: rgba(16,185,129,0.15); }
+  100% { background-color: rgba(0,0,0,0); }
+}
 .player .left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
 .player-number, .player-name{border-radius:8px;padding:8px;background:rgba(255,255,255,0.02);font-weight:700;outline:none}
 .player-number{width:56px;text-align:center;flex:0 0 56px}
@@ -24,15 +31,14 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neu
 button.icon{appearance:none;border:0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);color:inherit;font-weight:700;font-size:16px;min-width:48px}
 button.icon:active{transform:translateY(1px)}
 .time{width:78px;flex:0 0 78px;text-align:right;font-variant-numeric:tabular-nums}
-.toolbar{position:fixed;left:0;right:0;bottom:0;padding:8px;background:linear-gradient(180deg, rgba(5,10,18,0.9), rgba(5,10,18,1));display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+.toolbar{position:fixed;left:0;right:0;bottom:0;padding:8px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg, rgba(5,10,18,0.9), rgba(5,10,18,1));display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;z-index:50}
 .toolbar .btn{padding:12px 16px;border-radius:12px;border:0;background:rgba(255,255,255,0.03);color:inherit;font-weight:700;font-size:16px}
 .toolbar .btn.primary{background:linear-gradient(90deg,#06b6d4,#10b981)}
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:40}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:60}
 .modal.open{display:flex}
-.modal .sheet{width:calc(100% - 40px);max-width:520px;background:var(--card);border-radius:12px;padding:12px;}
+.modal .sheet{width:calc(100% - 40px);max-width:520px;background:var(--card);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .saved-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;padding:6px}
 .saved-item{padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
-@media(min-width:720px){body{padding:20px} .container{padding:0}}
 </style>
 </head>
 <body>
@@ -53,29 +59,24 @@ button.icon:active{transform:translateY(1px)}
 <div id="loadModal" class="modal" aria-hidden>
   <div class="sheet">
     <h3>Game Options</h3>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <button id="modalLoad" class="btn">Load Saved Game</button>
-      <button id="modalDownload" class="btn">Download Selected JSON</button>
-      <button id="modalUpload" class="btn">Upload JSON</button>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:8px">
-      <button id="closeModal" class="btn">Close</button>
-    </div>
+    <button id="modalLoad" class="btn">Load Saved Game</button>
+    <button id="modalDownload" class="btn">Download Selected JSON</button>
+    <button id="modalUpload" class="btn">Upload JSON</button>
     <div class="saved-list" id="savedList"></div>
     <input type="file" id="uploadInput" style="display:none" accept="application/json" multiple />
+    <div style="display:flex;justify-content:flex-end;">
+      <button id="closeModal" class="btn">Close</button>
+    </div>
   </div>
 </div>
 
 <script>
-// --- Initialization ---
+// --- Data & Initialization ---
 const initialPlayers=[{num:'26',name:'Alex'},{num:'00',name:'Miles'},{num:'00',name:'Julian'},
 {num:'00',name:'Benjamin'},{num:'00',name:'Judah'},{num:'00',name:'Sebastian'},{num:'00',name:'Kaison'},
 {num:'00',name:'Santiago'},{num:'00',name:'Maxwell'},{num:'00',name:'Ryan'},{num:'00',name:'Emerson'}];
-
 let players=initialPlayers.map(p=>({...p,seconds:0,active:false,running:false,history:[],id:cryptoRandomId()}));
-let gameSeconds=0;
-let globalRunning=false;
-let timerInterval=null;
+let gameSeconds=0, globalRunning=false, timerInterval=null;
 
 const playersEl=document.getElementById('players');
 const gameInput=document.getElementById('gameInput');
@@ -97,7 +98,8 @@ function render(){
   gameIdLabel.textContent=gameInput.value||'(no id)';
   playersEl.innerHTML='';
   players.forEach(p=>{
-    const row=document.createElement('div'); row.className='player'; if(p.active) row.classList.add('active');
+    const row=document.createElement('div'); row.className='player'; row.dataset.id=p.id;
+    if(p.active) row.classList.add('active');
     const left=document.createElement('div'); left.className='left';
     const num=document.createElement('div'); num.className='player-number'; num.contentEditable=true; num.textContent=p.num;
     num.addEventListener('input',()=>{p.num=num.textContent.trim(); saveToStorageIfHasId();});
@@ -120,7 +122,7 @@ function render(){
   document.getElementById('gameClock').innerHTML=`Game: <strong>${gameInput.value||'(no id)'}</strong> — ${fmt(gameSeconds)}`;
 }
 
-// --- Sorting and Rendering ---
+// --- Sorting ---
 function reorderAndRender(){
   const activePlayers=players.filter(p=>p.active).sort((a,b)=>b.seconds-a.seconds);
   const inactivePlayers=players.filter(p=>!p.active).sort((a,b)=>b.seconds-a.seconds);
@@ -134,6 +136,11 @@ function onPlus(id){
   const p=players.find(x=>x.id===id); if(!p) return;
   p.active=true; if(globalRunning) p.running=true;
   p.history.push({in:gameSeconds});
+
+  // Highlight effect
+  const row = [...playersEl.children].find(r => r.dataset.id === id);
+  if(row){ row.classList.add('highlight'); setTimeout(()=>row.classList.remove('highlight'),1200); }
+
   reorderAndRender(); saveToStorageIfHasId();
 }
 
@@ -148,11 +155,14 @@ function onMinus(id){
 // --- Timer Interval ---
 function startInterval(){
   if(!gameInput.value.trim()){alert('Enter a Game ID first'); return;}
+  if(players.filter(p=>p.active).length===0){alert('No active players'); return;}
   if(timerInterval) return;
   timerInterval=setInterval(()=>{
     if(globalRunning){
       gameSeconds++;
       players.forEach(p=>{if(p.running)p.seconds++;});
+      // Pause if all players inactive
+      if(players.filter(p=>p.active).length===0){ globalRunning=false; players.forEach(p=>p.running=false); }
       reorderAndRender();
       saveToStorageIfHasId();
     }
@@ -160,8 +170,8 @@ function startInterval(){
 }
 function stopInterval(){if(timerInterval){clearInterval(timerInterval); timerInterval=null;}}
 
-// --- Save ---
-function saveToStorage(){
+// --- Save & Load ---
+function saveToStorage(){ 
   const gameId=(gameInput.value||'').trim(); if(!gameId) return;
   const key=storageKey(gameId);
   const payload={gameSeconds,players:players.map(p=>({num:p.num,name:p.name,seconds:p.seconds,history:p.history})),timestamp:new Date().toLocaleString()};
@@ -174,6 +184,7 @@ function saveToStorageIfHasId(){if(gameInput.value.trim()) saveToStorage();}
 // --- Toolbar Events ---
 document.getElementById('playAll').addEventListener('click',()=>{
   if(!gameInput.value.trim()){alert('Enter a Game ID first'); return;}
+  if(players.filter(p=>p.active).length===0){alert('No active players'); return;}
   globalRunning=true;
   players.forEach(p=>{if(p.active)p.running=true});
   startInterval(); saveToStorageIfHasId();
@@ -192,12 +203,18 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
 });
 function bumpName(name){ const m=name.match(/^(.*) (\d+)$/); return m? m[1]+" "+(parseInt(m[2])+1): name+" 1"; }
 
-// --- Load Modal ---
+// --- Load Modal & JSON functions ---
 document.getElementById('loadBtn').addEventListener('click',()=>{ renderSavedList(); loadModal.classList.add('open'); });
 document.getElementById('closeModal').addEventListener('click',()=>loadModal.classList.remove('open'));
-document.getElementById('modalLoad').addEventListener('click',()=>{ alert('Select a game from the list below to load'); });
-document.getElementById('modalDownload').addEventListener('click',downloadSelectedJSON);
 document.getElementById('modalUpload').addEventListener('click',()=>uploadInput.click());
+uploadInput.addEventListener('change',e=>{
+  const files=[...e.target.files]; if(!files.length) return;
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=()=>{ try{ const arr=JSON.parse(reader.result); if(!Array.isArray(arr)) return; arr.forEach(obj=>{ const id=obj.id||cryptoRandomId(); if(localStorage.getItem(storageKey(id)) && !confirm(`Game ID ${id} exists. Overwrite?`)) return; localStorage.setItem(storageKey(id), JSON.stringify(obj)); let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]'); if(!idx.includes(id)) idx.push(id); localStorage.setItem(storageIndexKey(),JSON.stringify(idx));}); renderSavedList();}catch(err){alert('Invalid JSON');}};
+    reader.readAsText(file);
+  });
+});
 
 // --- Saved Games List ---
 function renderSavedList(){
@@ -220,23 +237,17 @@ function loadGame(id){ const raw=localStorage.getItem(storageKey(id)); if(!raw) 
 players=obj.players.map(p=>({...p, active:false, running:false, id:cryptoRandomId()}));
 gameSeconds=obj.gameSeconds||0; globalRunning=false; gameInput.value=id; render(); loadModal.classList.remove('open'); }
 
-function downloadSelectedJSON(){
-  const checkboxes=savedList.querySelectorAll('.selectGame'); const selected=[];
-  checkboxes.forEach(c=>{if(c.checked){ const id=c.parentElement.querySelector('strong').textContent; selected.push(JSON.parse(localStorage.getItem(storageKey(id))));}});
-  if(selected.length===0){alert('No games selected'); return;}
-  const blob=new Blob([JSON.stringify(selected,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='games.json'; a.click();
-}
-uploadInput.addEventListener('change',e=>{
-  const files=[...e.target.files]; if(!files.length) return;
-  files.forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=()=>{ try{ const arr=JSON.parse(reader.result); if(!Array.isArray(arr)) return; arr.forEach(obj=>{ const id=obj.id||cryptoRandomId(); if(localStorage.getItem(storageKey(id)) && !confirm(`Game ID ${id} exists. Overwrite?`)) return; localStorage.setItem(storageKey(id), JSON.stringify(obj)); let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]'); if(!idx.includes(id)) idx.push(id); localStorage.setItem(storageIndexKey(),JSON.stringify(idx));}); renderSavedList();}catch(err){alert('Invalid JSON');}};
-    reader.readAsText(file);
-  });
-});
-
 render();
+</script>
+<script>
+// --- Service Worker Registration ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(registration => {
+      console.log('ServiceWorker registered with scope:', registration.scope);
+    }).catch(err => console.log('ServiceWorker registration failed:', err));
+  });
+}
 </script>
 </body>
 </html>
