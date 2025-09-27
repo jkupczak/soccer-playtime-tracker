@@ -1,4 +1,4 @@
-const CACHE_NAME = 'soccer-tracker-cache-v1';
+const CACHE_NAME = 'soccer-tracker-cache-v2';
 const urlsToCache = ['/', '/index.html', '/manifest.json', '/sw.js'];
 
 self.addEventListener('install', event => {
