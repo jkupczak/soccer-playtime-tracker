@@ -22,7 +22,9 @@ body{
   display:flex;
   flex-direction:column;
   height:100vh;
+  overflow:hidden;
 }
+
 /* Header pinned top */
 .header{
   display:flex;
@@ -31,6 +33,7 @@ body{
   padding:8px 12px;
   background:var(--card);
   flex-shrink:0;
+  z-index:10;
 }
 .header input{
   flex:1;
@@ -47,6 +50,7 @@ body{
   font-weight:700;
   font-size:18px;
 }
+
 /* Scrollable player container */
 .player-container{
   flex:1;
@@ -55,7 +59,9 @@ body{
   display:flex;
   flex-direction:column;
   gap:8px;
+  padding-bottom:calc(8px + 60px + env(safe-area-inset-bottom)); /* leave space for toolbar */
 }
+
 /* Player row */
 .player{
   display:flex;
@@ -90,6 +96,7 @@ body{
   background:var(--accent);
   box-shadow:0 0 10px rgba(16,185,129,0.35);
 }
+
 .player .left{
   display:flex;
   align-items:center;
@@ -133,6 +140,7 @@ body{
   text-align:right;
   font-variant-numeric:tabular-nums;
 }
+
 /* Add player row */
 .add-player{
   display:flex;
@@ -144,16 +152,33 @@ body{
   cursor:pointer;
   font-weight:700;
 }
-/* Toolbar */
+
+/* Toolbar pinned bottom */
 .toolbar{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  padding:8px calc(12px + env(safe-area-inset-bottom));
+  background:var(--card);
   display:flex;
   justify-content:center;
   gap:8px;
   flex-wrap:wrap;
-  padding:8px 12px;
-  background:var(--card);
-  flex-shrink:0;
+  z-index:50;
 }
+.toolbar .btn{
+  padding:10px 14px;
+  border-radius:10px;
+  border:none;
+  background:rgba(255,255,255,0.03);
+  color:inherit;
+  font-weight:700;
+}
+.toolbar .btn.primary{
+  background:linear-gradient(90deg,#06b6d4,#10b981);
+}
+
 /* Modal */
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:60}
 .modal.open{display:flex}
