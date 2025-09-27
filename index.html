@@ -13,6 +13,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neu
 .gameclock{width:100%;text-align:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);font-weight:700;font-size:20px}
 .players{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .player{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 1px 0 rgba(255,255,255,0.02);width:100%}
+.player.active{border:2px solid var(--accent);}
 .player .left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
 .player-number, .player-name{border-radius:8px;padding:8px;background:rgba(255,255,255,0.02);font-weight:700;outline:none}
 .player-number{width:56px;text-align:center;flex:0 0 56px}
@@ -42,28 +43,31 @@ button.icon:active{transform:translateY(1px)}
 </div>
 
 <div class="toolbar" role="toolbar" aria-label="controls">
-  <button id="pauseAll" class="btn">Pause</button>
-  <button id="playAll" class="btn primary">Play</button>
+  <button id="pauseAll" class="btn">❚❚</button>
+  <button id="playAll" class="btn primary">►</button>
   <button id="saveBtn" class="btn">Save</button>
   <button id="resetBtn" class="btn">Reset</button>
   <button id="loadBtn" class="btn">Load</button>
-  <button id="downloadBtn" class="btn">Download JSON</button>
-  <input type="file" id="uploadInput" style="display:none" accept="application/json" multiple />
-  <button id="uploadBtn" class="btn">Upload JSON</button>
 </div>
 
 <div id="loadModal" class="modal" aria-hidden>
   <div class="sheet">
-    <h3>Saved Games</h3>
-    <div class="saved-list" id="savedList"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-      <button id="deleteAllBtn" class="btn" style="background:var(--danger);">Delete All</button>
+    <h3>Game Options</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button id="modalLoad" class="btn">Load Saved Game</button>
+      <button id="modalDownload" class="btn">Download Selected JSON</button>
+      <button id="modalUpload" class="btn">Upload JSON</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
       <button id="closeModal" class="btn">Close</button>
     </div>
+    <div class="saved-list" id="savedList"></div>
+    <input type="file" id="uploadInput" style="display:none" accept="application/json" multiple />
   </div>
 </div>
 
 <script>
+// --- Initialization ---
 const initialPlayers=[{num:'26',name:'Alex'},{num:'00',name:'Miles'},{num:'00',name:'Julian'},
 {num:'00',name:'Benjamin'},{num:'00',name:'Judah'},{num:'00',name:'Sebastian'},{num:'00',name:'Kaison'},
 {num:'00',name:'Santiago'},{num:'00',name:'Maxwell'},{num:'00',name:'Ryan'},{num:'00',name:'Emerson'}];
@@ -78,36 +82,27 @@ const gameInput=document.getElementById('gameInput');
 const gameIdLabel=document.getElementById('gameIdLabel');
 const savedList=document.getElementById('savedList');
 const loadModal=document.getElementById('loadModal');
+const uploadInput=document.getElementById('uploadInput');
 
 function cryptoRandomId(){return Math.random().toString(36).slice(2,9);}
 function fmt(s){const mm=Math.floor(s/60).toString().padStart(2,'0');const ss=(s%60).toString().padStart(2,'0');return mm+':'+ss;}
 function storageKey(id){return 'soccer_play_tracker:'+id;}
 function storageIndexKey(){return 'soccer_play_tracker:index';}
 
-function saveToStorage(){
-  const gameId=(gameInput.value||'').trim();
-  if(!gameId){return;}
-  const key=storageKey(gameId);
-  const payload={gameSeconds,players:players.map(p=>({num:p.num,name:p.name,seconds:p.seconds,history:p.history})),timestamp:new Date().toLocaleString()};
-  localStorage.setItem(key,JSON.stringify(payload));
-  let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
-  if(!idx.includes(gameId)) idx.push(gameId);
-  localStorage.setItem(storageIndexKey(),JSON.stringify(idx));
-  renderSavedList();
-}
+// Auto-generate game ID
+if(!gameInput.value) gameInput.value='Game-'+cryptoRandomId();
 
-function saveToStorageIfHasId(){ if(gameInput.value.trim()) saveToStorage(); }
-
+// --- Rendering ---
 function render(){
   gameIdLabel.textContent=gameInput.value||'(no id)';
   playersEl.innerHTML='';
   players.forEach(p=>{
-    const row=document.createElement('div'); row.className='player';
+    const row=document.createElement('div'); row.className='player'; if(p.active) row.classList.add('active');
     const left=document.createElement('div'); left.className='left';
     const num=document.createElement('div'); num.className='player-number'; num.contentEditable=true; num.textContent=p.num;
-    num.addEventListener('input',()=>{p.num=num.textContent.trim();saveToStorageIfHasId();});
+    num.addEventListener('input',()=>{p.num=num.textContent.trim(); saveToStorageIfHasId();});
     const name=document.createElement('div'); name.className='player-name'; name.contentEditable=true; name.textContent=p.name;
-    name.addEventListener('input',()=>{p.name=name.textContent.trim();saveToStorageIfHasId();});
+    name.addEventListener('input',()=>{p.name=name.textContent.trim(); saveToStorageIfHasId();});
     const indicator=document.createElement('div'); indicator.className='indicator'; if(p.active) indicator.classList.add('active');
     left.appendChild(num); left.appendChild(name); left.appendChild(indicator);
 
@@ -125,15 +120,17 @@ function render(){
   document.getElementById('gameClock').innerHTML=`Game: <strong>${gameInput.value||'(no id)'}</strong> — ${fmt(gameSeconds)}`;
 }
 
-// Sorting active/inactive and by playtime
+// --- Sorting and Rendering ---
 function reorderAndRender(){
-  const activePlayers = players.filter(p=>p.active).sort((a,b)=>b.seconds-a.seconds);
-  const inactivePlayers = players.filter(p=>!p.active).sort((a,b)=>b.seconds-a.seconds);
+  const activePlayers=players.filter(p=>p.active).sort((a,b)=>b.seconds-a.seconds);
+  const inactivePlayers=players.filter(p=>!p.active).sort((a,b)=>b.seconds-a.seconds);
   players=[...activePlayers,...inactivePlayers];
   render();
 }
 
+// --- Player Controls ---
 function onPlus(id){
+  if(!gameInput.value.trim()){alert('Enter a Game ID first'); return;}
   const p=players.find(x=>x.id===id); if(!p) return;
   p.active=true; if(globalRunning) p.running=true;
   p.history.push({in:gameSeconds});
@@ -141,41 +138,51 @@ function onPlus(id){
 }
 
 function onMinus(id){
+  if(!gameInput.value.trim()){alert('Enter a Game ID first'); return;}
   const p=players.find(x=>x.id===id); if(!p) return;
   p.running=false; p.active=false;
   const last=p.history[p.history.length-1]; if(last && last.in && !last.out) last.out=gameSeconds;
   reorderAndRender(); saveToStorageIfHasId();
 }
 
+// --- Timer Interval ---
 function startInterval(){
+  if(!gameInput.value.trim()){alert('Enter a Game ID first'); return;}
   if(timerInterval) return;
   timerInterval=setInterval(()=>{
     if(globalRunning){
       gameSeconds++;
       players.forEach(p=>{if(p.running)p.seconds++;});
       reorderAndRender();
-      saveToStorageIfHasId(); // Save every second while gameclock is running
+      saveToStorageIfHasId();
     }
   },1000);
 }
-
 function stopInterval(){if(timerInterval){clearInterval(timerInterval); timerInterval=null;}}
 
+// --- Save ---
+function saveToStorage(){
+  const gameId=(gameInput.value||'').trim(); if(!gameId) return;
+  const key=storageKey(gameId);
+  const payload={gameSeconds,players:players.map(p=>({num:p.num,name:p.name,seconds:p.seconds,history:p.history})),timestamp:new Date().toLocaleString()};
+  localStorage.setItem(key,JSON.stringify(payload));
+  let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]'); if(!idx.includes(gameId)) idx.push(gameId);
+  localStorage.setItem(storageIndexKey(),JSON.stringify(idx)); renderSavedList();
+}
+function saveToStorageIfHasId(){if(gameInput.value.trim()) saveToStorage();}
+
+// --- Toolbar Events ---
 document.getElementById('playAll').addEventListener('click',()=>{
+  if(!gameInput.value.trim()){alert('Enter a Game ID first'); return;}
   globalRunning=true;
   players.forEach(p=>{if(p.active)p.running=true});
-  startInterval();
-  saveToStorageIfHasId();
+  startInterval(); saveToStorageIfHasId();
 });
-
 document.getElementById('pauseAll').addEventListener('click',()=>{
-  globalRunning=false;
-  players.forEach(p=>p.running=false);
-  saveToStorageIfHasId();
+  if(!gameInput.value.trim()){alert('Enter a Game ID first'); return;}
+  globalRunning=false; players.forEach(p=>p.running=false); saveToStorageIfHasId();
 });
-
 document.getElementById('saveBtn').addEventListener('click',()=>saveToStorage());
-
 document.getElementById('resetBtn').addEventListener('click',()=>{
   if(!confirm('Reset current game?')) return;
   const old=(gameInput.value||'').trim(); const newName=bumpName(old||'Game'); gameInput.value=newName;
@@ -183,12 +190,16 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
   players.forEach(p=>{p.seconds=0; p.active=false; p.running=false; p.history=[]});
   render(); saveToStorageIfHasId();
 });
-
 function bumpName(name){ const m=name.match(/^(.*) (\d+)$/); return m? m[1]+" "+(parseInt(m[2])+1): name+" 1"; }
 
+// --- Load Modal ---
 document.getElementById('loadBtn').addEventListener('click',()=>{ renderSavedList(); loadModal.classList.add('open'); });
 document.getElementById('closeModal').addEventListener('click',()=>loadModal.classList.remove('open'));
+document.getElementById('modalLoad').addEventListener('click',()=>{ alert('Select a game from the list below to load'); });
+document.getElementById('modalDownload').addEventListener('click',downloadSelectedJSON);
+document.getElementById('modalUpload').addEventListener('click',()=>uploadInput.click());
 
+// --- Saved Games List ---
 function renderSavedList(){
   savedList.innerHTML=''; let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]');
   idx.sort((a,b)=>{ const aTS=JSON.parse(localStorage.getItem(storageKey(a))||'{}').timestamp; const bTS=JSON.parse(localStorage.getItem(storageKey(b))||'{}').timestamp; return new Date(bTS)-new Date(aTS); });
@@ -198,40 +209,31 @@ function renderSavedList(){
     const obj=JSON.parse(raw);
     const el=document.createElement('div'); el.className='saved-item';
     el.innerHTML=`<input type="checkbox" class="selectGame"> <strong>${id}</strong> <span>${obj.timestamp}</span>`;
-    const loadBtn=document.createElement('button'); loadBtn.className='btn'; loadBtn.textContent='Load'; loadBtn.addEventListener('click',()=>loadGame(id));
+    const loadBtn=document.createElement('button'); loadBtn.className='btn'; loadBtn.textContent='Load';
+    loadBtn.addEventListener('click',()=>loadGame(id));
     const deleteBtn=document.createElement('button'); deleteBtn.className='btn'; deleteBtn.style.background='var(--danger)'; deleteBtn.textContent='Delete';
     deleteBtn.addEventListener('click',()=>{if(confirm('Delete this game?')){ localStorage.removeItem(storageKey(id)); let index=JSON.parse(localStorage.getItem(storageIndexKey())||'[]'); index=index.filter(x=>x!==id); localStorage.setItem(storageIndexKey(),JSON.stringify(index)); renderSavedList();}});
     el.appendChild(loadBtn); el.appendChild(deleteBtn); savedList.appendChild(el);
   });
 }
+function loadGame(id){ const raw=localStorage.getItem(storageKey(id)); if(!raw) return; const obj=JSON.parse(raw);
+players=obj.players.map(p=>({...p, active:false, running:false, id:cryptoRandomId()}));
+gameSeconds=obj.gameSeconds||0; globalRunning=false; gameInput.value=id; render(); loadModal.classList.remove('open'); }
 
-function loadGame(id){
-  const raw=localStorage.getItem(storageKey(id)); if(!raw) return;
-  const obj=JSON.parse(raw);
-  players=obj.players.map(p=>({...p, active:false, running:false, id:cryptoRandomId()}));
-  gameSeconds=obj.gameSeconds||0; globalRunning=false; gameInput.value=id; render(); loadModal.classList.remove('open');
-}
-
-document.getElementById('downloadBtn').addEventListener('click',()=>{
+function downloadSelectedJSON(){
   const checkboxes=savedList.querySelectorAll('.selectGame'); const selected=[];
   checkboxes.forEach(c=>{if(c.checked){ const id=c.parentElement.querySelector('strong').textContent; selected.push(JSON.parse(localStorage.getItem(storageKey(id))));}});
   if(selected.length===0){alert('No games selected'); return;}
   const blob=new Blob([JSON.stringify(selected,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='games.json'; a.click();
-});
-
-document.getElementById('uploadBtn').addEventListener('click',()=>document.getElementById('uploadInput').click());
-document.getElementById('uploadInput').addEventListener('change',e=>{
+}
+uploadInput.addEventListener('change',e=>{
   const files=[...e.target.files]; if(!files.length) return;
   files.forEach(file=>{
     const reader=new FileReader();
     reader.onload=()=>{ try{ const arr=JSON.parse(reader.result); if(!Array.isArray(arr)) return; arr.forEach(obj=>{ const id=obj.id||cryptoRandomId(); if(localStorage.getItem(storageKey(id)) && !confirm(`Game ID ${id} exists. Overwrite?`)) return; localStorage.setItem(storageKey(id), JSON.stringify(obj)); let idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]'); if(!idx.includes(id)) idx.push(id); localStorage.setItem(storageIndexKey(),JSON.stringify(idx));}); renderSavedList();}catch(err){alert('Invalid JSON');}};
     reader.readAsText(file);
   });
-});
-
-document.getElementById('deleteAllBtn').addEventListener('click',()=>{
-  if(confirm('Delete ALL saved games?')){ const idx=JSON.parse(localStorage.getItem(storageIndexKey())||'[]'); idx.forEach(id=>localStorage.removeItem(storageKey(id))); localStorage.setItem(storageIndexKey(),JSON.stringify([])); renderSavedList(); }
 });
 
 render();
