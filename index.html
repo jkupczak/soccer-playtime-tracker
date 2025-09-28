@@ -83,18 +83,6 @@ body{
   50%{background-color:rgba(16,185,129,0.15)}
   100%{background-color:rgba(0,0,0,0)}
 }
-.player .indicator{
-  width:14px;
-  height:14px;
-  border-radius:50%;
-  background:var(--muted);
-  box-shadow:0 0 6px rgba(0,0,0,0.6);
-  flex-shrink:0;
-}
-.player .indicator.active{
-  background:var(--accent);
-  box-shadow:0 0 10px rgba(16,185,129,0.35);
-}
 
 .player .left{
   display:flex;
@@ -138,6 +126,16 @@ body{
   flex:0 0 60px;
   text-align:right;
   font-variant-numeric:tabular-nums;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+      display: flex;
+    border-radius: 10px;
+}
+.player .time.active{
+    font-weight: bold;
+    background: var(--accent);
 }
 
 /* Add player row */
@@ -327,9 +325,6 @@ function render(){
     const row=document.createElement('div'); row.className='player'; row.dataset.id=p.id;
     if(p.active) row.classList.add('active');
 
-    const indicator=document.createElement('div'); indicator.className='indicator'; if(p.active) indicator.classList.add('active');
-    row.appendChild(indicator);
-
     const left=document.createElement('div'); left.className='left';
     const num=document.createElement('div'); num.className='player-number'; num.contentEditable=true; num.textContent=p.num;
     num.addEventListener('input',()=>{p.num=num.textContent.trim(); autoSave();});
@@ -355,6 +350,7 @@ function render(){
     row.appendChild(controls);
 
     const time=document.createElement('div'); time.className='time'; time.textContent=fmt(p.seconds);
+    if(p.active) time.classList.add('active');
     row.appendChild(time);
 
     playersEl.appendChild(row);
@@ -422,7 +418,7 @@ const playSVG = `
 </svg>`;
 
 const pauseSVG = `
-<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 100 100">
   <rect x="30" y="20" width="15" height="60" fill="white"/>
   <rect x="55" y="20" width="15" height="60" fill="white"/>
 </svg>
