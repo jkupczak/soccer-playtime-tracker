@@ -410,7 +410,20 @@ function autoSave(){
   if(!idx.includes(id)) idx.push(id);
   localStorage.setItem(storageIndexKey(),JSON.stringify(idx));
 }
+  
+const playSVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="48" fill="none" stroke="white" stroke-width="4"/>
+  <polygon points="40,30 70,50 40,70" fill="white"/>
+</svg>`;
 
+const pauseSVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="48" fill="none" stroke="white" stroke-width="4"/>
+  <rect x="35" y="30" width="10" height="40" fill="white"/>
+  <rect x="55" y="30" width="10" height="40" fill="white"/>
+</svg>`;
+  
 // --- Toolbar ---
 const togglePlayBtn = document.getElementById('togglePlay');
 togglePlayBtn.addEventListener('click', () => {
@@ -420,16 +433,7 @@ togglePlayBtn.addEventListener('click', () => {
   globalRunning = !globalRunning;
   players.forEach(p => { if (p.active) p.running = globalRunning; });
   
-  togglePlayBtn.textContent = globalRunning ? `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="48" fill="none" stroke="white" stroke-width="4"/>
-  <rect x="35" y="30" width="10" height="40" fill="white"/>
-  <rect x="55" y="30" width="10" height="40" fill="white"/>
-</svg>
-` : `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="48" fill="none" stroke="white" stroke-width="4"/>
-  <polygon points="40,30 70,50 40,70" fill="white"/>
-</svg>
-`;
+  togglePlayBtn.textContent = globalRunning ? pauseSVG : playSVG;
 
   if (globalRunning) startInterval();
   autoSave();
