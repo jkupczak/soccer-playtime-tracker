@@ -318,23 +318,52 @@ function initializePlayers(){
 }
 
 // --- Render & Event Listeners ---
+let removeMode=false; // Tracks if we're in "select players to remove" mode
+
 function render(){
   gameClockEl.textContent=fmt(gameSeconds);
   playersEl.innerHTML='';
+
   players.forEach(p=>{
-    const row=document.createElement('div'); row.className='player'; row.dataset.id=p.id;
+    const row=document.createElement('div'); 
+    row.className='player'; 
+    row.dataset.id=p.id;
     if(p.active) row.classList.add('active');
 
-    const left=document.createElement('div'); left.className='left';
-    const num=document.createElement('div'); num.className='player-number'; num.contentEditable=true; num.textContent=p.num;
+    const left=document.createElement('div'); 
+    left.className='left';
+
+    // Remove checkbox (only shown in removeMode)
+    let checkbox;
+    if(removeMode){
+      checkbox=document.createElement('input');
+      checkbox.type='checkbox';
+      checkbox.style.marginRight='6px';
+      checkbox.checked=p._markedForRemove||false;
+      checkbox.addEventListener('change',()=>{p._markedForRemove=checkbox.checked;});
+      left.appendChild(checkbox);
+    }
+
+    const num=document.createElement('div'); 
+    num.className='player-number'; 
+    num.contentEditable=true; 
+    num.textContent=p.num;
     num.addEventListener('input',()=>{p.num=num.textContent.trim(); autoSave();});
-    const name=document.createElement('div'); name.className='player-name'; name.contentEditable=true; name.textContent=p.name;
+
+    const name=document.createElement('div'); 
+    name.className='player-name'; 
+    name.contentEditable=true; 
+    name.textContent=p.name;
     name.addEventListener('input',()=>{p.name=name.textContent.trim(); autoSave();});
-    left.appendChild(num); left.appendChild(name);
+
+    left.appendChild(num); 
+    left.appendChild(name);
     row.appendChild(left);
 
-    const controls=document.createElement('div'); controls.className='controls';
-    const subBtn=document.createElement('button'); subBtn.className='icon'; 
+    const controls=document.createElement('div'); 
+    controls.className='controls';
+    const subBtn=document.createElement('button'); 
+    subBtn.className='icon'; 
     function updateBtn(){subBtn.textContent=p.active?'-':'+';}
     updateBtn();
     subBtn.addEventListener('click', ()=>{
@@ -349,17 +378,41 @@ function render(){
     controls.appendChild(subBtn);
     row.appendChild(controls);
 
-    const time=document.createElement('div'); time.className='time'; time.textContent=fmt(p.seconds);
+    const time=document.createElement('div'); 
+    time.className='time'; 
+    time.textContent=fmt(p.seconds);
     if(p.active) time.classList.add('active');
     row.appendChild(time);
 
     playersEl.appendChild(row);
   });
 
-  const addRow=document.createElement('div'); addRow.className='add-player'; addRow.textContent='+ Add Player';
+  // Add Player row
+  const addRow=document.createElement('div'); 
+  addRow.className='add-player'; 
+  addRow.textContent='+ Add Player';
   addRow.addEventListener('click',addNewPlayer);
   playersEl.appendChild(addRow);
+
+  // Remove Player row
+  const removeRow=document.createElement('div'); 
+  removeRow.className='add-player'; 
+  removeRow.textContent='- Remove Player';
+  removeRow.addEventListener('click',()=>{
+    if(!removeMode){
+      removeMode=true;
+      reorderAndRender();
+    } else {
+      // Remove all marked players
+      players=players.filter(p=>!p._markedForRemove);
+      removeMode=false;
+      reorderAndRender();
+      autoSave();
+    }
+  });
+  playersEl.appendChild(removeRow);
 }
+
 
 // --- Sorting ---
 function reorderAndRender(){
