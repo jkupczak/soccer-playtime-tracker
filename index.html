@@ -154,13 +154,14 @@ body{
 
 /* Toolbar pinned bottom */
 .toolbar{
-  padding:8px;
-  background:var(--card);
-  display:flex;
-  justify-content: space-between;
-  gap:8px;
-  flex-wrap:wrap;
-  flex-shrink:0;
+    padding: 8px;
+    background: var(--card);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    position: relative;
 }
 .toolbar .btn{
   padding:10px 14px;
@@ -171,10 +172,17 @@ body{
   font-weight:700;
 }
 .toolbar .btn.primary{
-  background:linear-gradient(90deg,#06b6d4,#10b981);
-  padding:10px 14px;
-  border-radius:10px;
-  font-size:24px;
+    background: linear-gradient(90deg, #06b6d4, #10b981);
+    padding: 0px;
+    border-radius: 100%;
+    display: flex;
+    position: absolute;
+    justify-self: anchor-center;
+    top: -35px;
+    box-shadow: 0 0 0 8px var(--card);
+    width: 70px;
+    height: 70px;
+    align-items: anchor-center;
 }
 
 /* Modal */
