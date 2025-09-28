@@ -441,7 +441,7 @@ togglePlayBtn.addEventListener('click', () => {
   globalRunning = !globalRunning;
   players.forEach(p => { if (p.active) p.running = globalRunning; });
   
-  togglePlayBtn.textContent = globalRunning ? pauseSVG : playSVG;
+  togglePlayBtn.innerHTML = globalRunning ? pauseSVG : playSVG;
 
   if (globalRunning) startInterval();
   autoSave();
